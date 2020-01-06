@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "146779294572",
+    "firebase_url": "https://anticorruptionforce-6786c.firebaseio.com",
+    "project_id": "anticorruptionforce-6786c",
+    "storage_bucket": "anticorruptionforce-6786c.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:146779294572:android:c5021ebdf52a77b3ccc149",
+        "android_client_info": {
+          "package_name": "com.acfapp.acf"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "146779294572-tj50478h9u1d7t49amsrdbtaf86d8qbm.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.acfapp.acf",
+            "certificate_hash": "7fb4cecc2e6c441c8ea4186e591bd1fedb595bbf"
+          }
+        },
+        {
+          "client_id": "146779294572-rj280tf32l3qmu8aohkj16p4o95r9hoh.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD_2qW_jFWKVtQYIqBN4CQ8mXbHaVS1H6U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "146779294572-rj280tf32l3qmu8aohkj16p4o95r9hoh.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
