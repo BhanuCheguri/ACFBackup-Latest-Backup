@@ -1,6 +1,8 @@
 package com.acfapp.acf;
 
 import android.app.Activity;
+import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.os.Build;
@@ -19,13 +21,13 @@ import androidx.appcompat.app.AppCompatActivity;
 public class BaseActivity extends AppCompatActivity {
     private static final String TAG = "BaseActivity";
     SharedPreferences pref;
+    ProgressDialog mProgressDialog;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Log.d(TAG, this.getClass().toString());
         pref = getApplicationContext().getSharedPreferences("MyPref", 0); // 0 - for private mode
-
     }
 
 
@@ -106,5 +108,19 @@ public class BaseActivity extends AppCompatActivity {
         });
         builder.create();
         builder.show();
+    }
+
+    public void showProgressDialog(Context context){
+        mProgressDialog = new ProgressDialog(context);
+        mProgressDialog = new ProgressDialog(context);
+        mProgressDialog.setMessage("Loading...Please wait");
+        mProgressDialog.setCancelable(false);
+        mProgressDialog.show();
+    }
+
+    public void hideProgressDialog(Context context)
+    {
+        if(mProgressDialog != null && mProgressDialog.isShowing())
+            mProgressDialog.dismiss();
     }
 }
