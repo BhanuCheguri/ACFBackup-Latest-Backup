@@ -86,7 +86,7 @@
                             android:fontFamily="@font/montserrat_light"
                             android:inputType="number"
                             android:gravity="center"
-                            android:maxLength="13"
+                            android:maxLength="10"
                             android:hint="@string/mobile_number"/>
 
                         <Button

@@ -13,7 +13,11 @@ import android.content.IntentSender;
 import android.os.Bundle;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Retrofit;
 
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.view.Window;
@@ -51,10 +55,12 @@ import java.util.Map;
 public class OTPVerificationActivity extends BaseActivity implements View.OnClickListener , GoogleApiClient.ConnectionCallbacks,
         OtpReceivedInterface, GoogleApiClient.OnConnectionFailedListener{
 
+    String TAG = "OTPVerificationActivity.class" ;
     ActivityOtpverificationBinding binding;
     GoogleApiClient mGoogleApiClient;
     SmsBroadcastReceiver mSmsBroadcastReceiver;
     private int RESOLVE_HINT = 2;
+    APIRetrofitClient apiRetrofitClient;
     private RequestQueue requestQueue;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,29 +69,11 @@ public class OTPVerificationActivity extends BaseActivity implements View.OnClic
 
         setActionBarTitle(getString(R.string.title_OTPVerification));
 
+        apiRetrofitClient = new APIRetrofitClient();
         binding = DataBindingUtil.setContentView(this, R.layout.activity_otpverification);
         binding.btnContinue.setOnClickListener(this);
         binding.btnSubmit.setOnClickListener(this);
         binding.changeMobileNo.setOnClickListener(this);
-
-        mSmsBroadcastReceiver = new SmsBroadcastReceiver();
-
-        //set google api client for hint request
-        mGoogleApiClient = new GoogleApiClient.Builder(this)
-                .addConnectionCallbacks(this)
-                .enableAutoManage(this, this)
-                .addApi(Auth.CREDENTIALS_API)
-                .build();
-
-        mSmsBroadcastReceiver.setOnOtpListeners(this);
-        IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(SmsRetriever.SMS_RETRIEVED_ACTION);
-        getApplicationContext().registerReceiver(mSmsBroadcastReceiver, intentFilter);
-
-        // get mobile number from phone
-        //getHintPhoneNumber();
-
-        //requestQueue = Volley.newRequestQueue(this);
     }
 
     @Override public void onConnected(@Nullable Bundle bundle) {
@@ -168,23 +156,7 @@ public class OTPVerificationActivity extends BaseActivity implements View.OnClic
         switch (view.getId())
         {
             case R.id.btnContinue:
-                // Call server API for requesting OTP and when you got success start SMS Listener for listing auto read message lsitner
-                //startSMSListener();
-                InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
-                imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
-
-                if(binding.etMobileNo.getText().toString().isEmpty()){
-                    Snack("Number is empty");
-                }else if(binding.etMobileNo.getText().length()!=10){
-                    Snack("Check the number");
-                }else if(binding.etMobileNo.getText().toString().isEmpty()){
-                    Snack("Message is empty");
-                }else{
-                    //SendSms(binding.etMobileNo.getText().toString(),"OTP");
-                    Toast.makeText(this, "SMS gateway is in Development", Toast.LENGTH_SHORT).show();
-                    binding.otpCode.setText("91001");
-                }
-
+                postAddMemberDetails();
 
                 break;
             case R.id.change_mobile_no:
@@ -197,13 +169,91 @@ public class OTPVerificationActivity extends BaseActivity implements View.OnClic
                 {
                     Toast.makeText(this,"Mobile Number cannot be empty",Toast.LENGTH_LONG).show();
                 }else {
-                    Intent intent = new Intent(OTPVerificationActivity.this, MainActivity.class);
+
+                    postAddMemberDetails();
+
+                    /*Intent intent = new Intent(OTPVerificationActivity.this, MainActivity.class);
                     startActivity(intent);
-                    finish();
+                    finish();*/
                 }
         }
     }
 
+    private void postAddMemberDetails() {
+
+        Retrofit retrofit = apiRetrofitClient.getRetrofit(APIInterface.BASE_URL);
+        APIInterface api = retrofit.create(APIInterface.class);
+
+        showProgressDialog(OTPVerificationActivity.this);
+        Call<AddMemberResult> call;
+
+
+
+        try {
+
+           AddMemberData addData_pojo = new AddMemberData();
+            addData_pojo.setEmail("RAM");
+            addData_pojo.setFullname("4384984990");
+            addData_pojo.setMobile("sample@gmail.com");
+            addData_pojo.setGender("M");
+            addData_pojo.setPhoto("ewerw.jpg");
+           /*  JSONObject paramObject = new JSONObject();
+            paramObject.put("fullname", "RAM");
+            paramObject.put("mobile", "4384984990");
+            paramObject.put("email", "sample@gmail.com");
+            paramObject.put("gender", "M");
+            paramObject.put("photo", "ewerw.jpg");*/
+            String body = "{\n" +
+                    "\"fullname\":\"Rama K Eddy\",\n" +
+                    "\"mobile\": \"7678765897\",\n" +
+                    "\"email\":\"ghfhf@gmail.com\",\n" +
+                    "\"gender\":\"M\",\n" +
+                    "\"photo\":\"rama.jpg\"\n" +
+                    "}";
+            call = api.postAddMember(body);
+            //call = api.postAddMember("RAM","4384984990","sample@gmail.com","M","ewerw.jpg");
+
+            call.enqueue(new Callback<AddMemberResult>() {
+
+                @Override
+                public void onResponse(Call<AddMemberResult> call, retrofit2.Response<AddMemberResult> response) {
+                    if (response != null && response.isSuccessful()) {
+                        Log.i(TAG, "post submitted to API." + response.body().toString());
+
+                        String strMemberID = response.body().getMemberID();
+                        String strFullName = response.body().getFullName();
+                        String strMobile = response.body().getMobile();
+                        String strEmail = response.body().getEmail();
+                        String strGender = response.body().getGender();
+                        String strPhoto = response.body().getPhoto();
+                        String strMemberType = response.body().getMemberType();
+                        String strRegDate = response.body().getRegDate();
+                        String strStatus = response.body().getStatus();
+                        String strModifiedBy = response.body().getModifiedBy();
+                        String strModifiedDate = response.body().getModifiedDate();
+                    } else {
+                        //response.body() have your LoginResult fields and methods  (example you have to access error then try like this response.body().getError() )
+                        Toast.makeText(getBaseContext(), response.body().toString(), Toast.LENGTH_SHORT).show();
+                        hideProgressDialog(OTPVerificationActivity.this);
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<AddMemberResult> call, Throwable t) {
+                    Log.e(TAG, "onFailure: message" + t.getMessage());
+                    Log.e(TAG, "Unable to submit post to API." + t.getMessage());
+
+                    t.printStackTrace();
+                    hideProgressDialog(OTPVerificationActivity.this);
+                    Toast.makeText(OTPVerificationActivity.this, "Unable to submit post to API.", Toast.LENGTH_SHORT).show();
+                }
+
+            });
+        }catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+    }
 
 
 

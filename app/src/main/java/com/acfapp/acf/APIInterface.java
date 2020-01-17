@@ -29,16 +29,18 @@ public interface APIInterface {
     Call<List<WallPostsModel>> getWallPostDetails();
 
     //@Headers("Content-Type: application/json")
-   /* @FormUrlEncoded
+    @FormUrlEncoded
+    @Headers({ "Content-Type: application/json;charset=UTF-8"})
     @POST("members/addmember")
-    *//*Call<AddMemberResult> postAddMember(@Field("fullname") String fullname,
+    /*Call<AddMemberResult> postAddMember(@Field("fullname") String fullname,
                                         @Field("mobile") String mobile,
                                         @Field("email") String email,
                                         @Field("gender") String gender,
-                                        @Field("photo") String photo);*//*
-    Call<AddMemberResult> postAddMember(@Body AddMemberData addData_pojo);*/
+                                        @Field("photo") String photo);*/
+    Call<AddMemberResult> postAddMember(@Body String addData_pojo);
+    //Call<AddMemberResult> postAddMember(@Body AddMemberData addData_pojo);
 
-    @PATCH("members/addmember")
-    Call<AddMemberResult> postAddMember(@Body AddMemberData addData_pojo);
+    /*@PATCH("members/addmember")
+    Call<AddMemberResult> postAddMember(@Body AddMemberData addData_pojo);*/
 
 }
