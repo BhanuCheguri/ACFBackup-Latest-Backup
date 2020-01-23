@@ -13,6 +13,15 @@ public class AddMemberResult {
     String ModifiedBy;
     String ModifiedDate;
 
+
+    public AddMemberResult(String FullName, String Mobile,String Email, String Gender, String Photo) {
+        this.FullName = FullName;
+        this.Mobile = Mobile;
+        this.Email = Email;
+        this.Gender = Gender;
+        this.Photo = Photo;
+    }
+
     public String getMemberID() {
         return MemberID;
     }

@@ -3,25 +3,24 @@ package com.acfapp.acf;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.databinding.DataBindingUtil;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 
 import android.app.Activity;
 import android.app.PendingIntent;
-import android.content.Context;
+import android.app.ProgressDialog;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.IntentSender;
+import android.content.res.Resources;
+import android.os.AsyncTask;
 import android.os.Bundle;
-import androidx.appcompat.app.ActionBar;
-import androidx.appcompat.app.AppCompatActivity;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Retrofit;
 
-import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.view.Window;
-import android.view.inputmethod.InputMethodManager;
 import android.widget.Toast;
 
 import com.acfapp.acf.SMSVerification.OtpReceivedInterface;
@@ -29,10 +28,9 @@ import com.acfapp.acf.SMSVerification.SmsBroadcastReceiver;
 import com.acfapp.acf.databinding.ActivityOtpverificationBinding;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
-import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
-import com.android.volley.toolbox.Volley;
+import com.crashlytics.android.Crashlytics;
 import com.google.android.gms.auth.api.Auth;
 import com.google.android.gms.auth.api.credentials.Credential;
 import com.google.android.gms.auth.api.credentials.HintRequest;
@@ -43,13 +41,30 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
-import com.google.android.material.snackbar.Snackbar;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.ProtocolException;
+import java.net.URL;
+import java.net.URLEncoder;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class OTPVerificationActivity extends BaseActivity implements View.OnClickListener , GoogleApiClient.ConnectionCallbacks,
@@ -62,12 +77,16 @@ public class OTPVerificationActivity extends BaseActivity implements View.OnClic
     private int RESOLVE_HINT = 2;
     APIRetrofitClient apiRetrofitClient;
     private RequestQueue requestQueue;
+    JsonObject gsonObject;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         requestWindowFeature(Window.FEATURE_ACTION_BAR);
 
         setActionBarTitle(getString(R.string.title_OTPVerification));
+
+        gsonObject = new JsonObject();
 
         apiRetrofitClient = new APIRetrofitClient();
         binding = DataBindingUtil.setContentView(this, R.layout.activity_otpverification);
@@ -156,8 +175,8 @@ public class OTPVerificationActivity extends BaseActivity implements View.OnClic
         switch (view.getId())
         {
             case R.id.btnContinue:
-                postAddMemberDetails();
-
+                postAddMemberDetails("Rama K Eddy", "7678765897", "ghfhf@gmail.com", "M", "rama.jpg");
+                //postImageUpload();
                 break;
             case R.id.change_mobile_no:
                 binding.llVerifyingOtp.setVisibility(View.GONE);
@@ -170,8 +189,8 @@ public class OTPVerificationActivity extends BaseActivity implements View.OnClic
                     Toast.makeText(this,"Mobile Number cannot be empty",Toast.LENGTH_LONG).show();
                 }else {
 
-                    postAddMemberDetails();
-
+                    postAddMemberDetails("Rama K Eddy","7678765897","ghfhf@gmail.com","M","rama.jpg");
+                    //postImageUpload();
                     /*Intent intent = new Intent(OTPVerificationActivity.this, MainActivity.class);
                     startActivity(intent);
                     finish();*/
@@ -179,30 +198,9 @@ public class OTPVerificationActivity extends BaseActivity implements View.OnClic
         }
     }
 
-    private void postAddMemberDetails() {
-
-        Retrofit retrofit = apiRetrofitClient.getRetrofit(APIInterface.BASE_URL);
-        APIInterface api = retrofit.create(APIInterface.class);
-
-        showProgressDialog(OTPVerificationActivity.this);
-        Call<AddMemberResult> call;
-
-
-
+    private void postImageUpload()
+    {
         try {
-
-           AddMemberData addData_pojo = new AddMemberData();
-            addData_pojo.setEmail("RAM");
-            addData_pojo.setFullname("4384984990");
-            addData_pojo.setMobile("sample@gmail.com");
-            addData_pojo.setGender("M");
-            addData_pojo.setPhoto("ewerw.jpg");
-           /*  JSONObject paramObject = new JSONObject();
-            paramObject.put("fullname", "RAM");
-            paramObject.put("mobile", "4384984990");
-            paramObject.put("email", "sample@gmail.com");
-            paramObject.put("gender", "M");
-            paramObject.put("photo", "ewerw.jpg");*/
             String body = "{\n" +
                     "\"fullname\":\"Rama K Eddy\",\n" +
                     "\"mobile\": \"7678765897\",\n" +
@@ -210,47 +208,148 @@ public class OTPVerificationActivity extends BaseActivity implements View.OnClic
                     "\"gender\":\"M\",\n" +
                     "\"photo\":\"rama.jpg\"\n" +
                     "}";
-            call = api.postAddMember(body);
-            //call = api.postAddMember("RAM","4384984990","sample@gmail.com","M","ewerw.jpg");
 
-            call.enqueue(new Callback<AddMemberResult>() {
+            new SendDeviceDetails().execute("http://api.ainext.in/members/addmember", body.toString());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
-                @Override
-                public void onResponse(Call<AddMemberResult> call, retrofit2.Response<AddMemberResult> response) {
-                    if (response != null && response.isSuccessful()) {
-                        Log.i(TAG, "post submitted to API." + response.body().toString());
 
-                        String strMemberID = response.body().getMemberID();
-                        String strFullName = response.body().getFullName();
-                        String strMobile = response.body().getMobile();
-                        String strEmail = response.body().getEmail();
-                        String strGender = response.body().getGender();
-                        String strPhoto = response.body().getPhoto();
-                        String strMemberType = response.body().getMemberType();
-                        String strRegDate = response.body().getRegDate();
-                        String strStatus = response.body().getStatus();
-                        String strModifiedBy = response.body().getModifiedBy();
-                        String strModifiedDate = response.body().getModifiedDate();
-                    } else {
-                        //response.body() have your LoginResult fields and methods  (example you have to access error then try like this response.body().getError() )
-                        Toast.makeText(getBaseContext(), response.body().toString(), Toast.LENGTH_SHORT).show();
-                        hideProgressDialog(OTPVerificationActivity.this);
-                    }
+    private class SendDeviceDetails extends AsyncTask<String, Void, String> {
+
+        @Override
+        protected String doInBackground(String... params) {
+            
+            HttpURLConnection httpcon = null;
+            String url = "http://api.ainext.in/members/addmember";
+            String data = "{\n" +
+                    "\"fullname\":\"Rama K Eddy\",\n" +
+                    "\"mobile\": \"7678765897\",\n" +
+                    "\"email\":\"ghfhf@gmail.com\",\n" +
+                    "\"gender\":\"M\",\n" +
+                    "\"photo\":\"rama.jpg\"\n" +
+                    "}";
+            String result = null;
+            try {
+                //Connect
+                httpcon = (HttpURLConnection) ((new URL (url).openConnection()));
+                httpcon.setDoOutput(true);
+                httpcon.setRequestProperty("Content-Type", "application/json");
+                httpcon.setRequestProperty("Accept", "application/json");
+                httpcon.setRequestMethod("POST");
+                httpcon.connect();
+
+                //Write       
+                OutputStream os = httpcon.getOutputStream();
+                BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os, "UTF-8"));
+                writer.write(data);
+                writer.close();
+                os.close();
+
+                //Read        
+                BufferedReader br = new BufferedReader(new InputStreamReader(httpcon.getInputStream(),"UTF-8"));
+
+                String line = null;
+                StringBuilder sb = new StringBuilder();
+
+                while ((line = br.readLine()) != null) {
+                    sb.append(line);
                 }
 
-                @Override
-                public void onFailure(Call<AddMemberResult> call, Throwable t) {
-                    Log.e(TAG, "onFailure: message" + t.getMessage());
-                    Log.e(TAG, "Unable to submit post to API." + t.getMessage());
+                br.close();
+                result = sb.toString();
 
-                    t.printStackTrace();
-                    hideProgressDialog(OTPVerificationActivity.this);
-                    Toast.makeText(OTPVerificationActivity.this, "Unable to submit post to API.", Toast.LENGTH_SHORT).show();
+            } catch (UnsupportedEncodingException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+
+                if (httpcon != null) {
+                    httpcon.disconnect();
                 }
+            }
 
-            });
+            return result;
+        }
+
+        @Override
+        protected void onPostExecute(String result) {
+            super.onPostExecute(result);
+            Log.e("TAG", result); // this is expecting a response code to be sent from your server upon receiving the POST data
+        }
+    }
+
+    private void postAddMemberDetails(String fullname, String mobile, String email, String gender, String photo) {
+
+        String body = "{\n" +
+                "\"fullname\":\"Rama K Eddy\",\n" +
+                "\"mobile\": \"7678765897\",\n" +
+                "\"email\":\"ghfhf@gmail.com\",\n" +
+                "\"gender\":\"M\",\n" +
+                "\"photo\":\"rama.jpg\"\n" +
+                "}";
+        try {
+            gsonObject.addProperty("fullname", "Rama K Eddy");
+            gsonObject.addProperty("mobile", "7678765897");
+            gsonObject.addProperty("email", "ghfhf@gmail.com");
+            gsonObject.addProperty("gender", "M");
+            gsonObject.addProperty("photo", "rama.jpg");
+
         }catch (Exception e)
         {
+            e.printStackTrace();
+        }
+        Retrofit retrofit = apiRetrofitClient.getRetrofit(APIInterface.BASE_URL);
+        APIInterface api = retrofit.create(APIInterface.class);
+
+        try {
+            //showProgressDialog(OTPVerificationActivity.this);
+
+            Call<AddMemberResult> registerCall = api.postData(gsonObject);
+
+            registerCall.enqueue(new retrofit2.Callback<AddMemberResult>() {
+                    @Override
+                    public void onResponse(Call<AddMemberResult> registerCall, retrofit2.Response<AddMemberResult> response) {
+
+                        try {
+                            if(response.body() != null) {
+                                Log.e(" responce => ", response.body().toString());
+                                AddMemberResult addMemberResult = response.body();
+                                if (response.isSuccessful()) {
+                                   //hideProgressDialog(OTPVerificationActivity.this);
+                                } else {
+                                    //hideProgressDialog(OTPVerificationActivity.this);
+                                }
+                            }else
+                                Toast.makeText(OTPVerificationActivity.this, "RESPONSE :: "+response.body(), Toast.LENGTH_SHORT).show();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            try {
+                                Log.e("Tag", "error=" + e.toString());
+                                Toast.makeText(OTPVerificationActivity.this, "ERROR :: "+ e.toString(), Toast.LENGTH_SHORT).show();
+                                //hideProgressDialog(OTPVerificationActivity.this);
+                            } catch (Resources.NotFoundException e1) {
+                                e1.printStackTrace();
+                            }
+
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Call<AddMemberResult> call, Throwable t) {
+                        try {
+                            Log.e("Tag", "error" + t.toString());
+                            //Toast.makeText(OTPVerificationActivity.this, "ERROR :: "+ t.toString(), Toast.LENGTH_SHORT).show();
+                            hideProgressDialog(OTPVerificationActivity.this);
+                        } catch (Resources.NotFoundException e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                });
+        } catch (Resources.NotFoundException e) {
             e.printStackTrace();
         }
     }
@@ -261,7 +360,7 @@ public class OTPVerificationActivity extends BaseActivity implements View.OnClic
         Toast.makeText(OTPVerificationActivity.this, message, Toast.LENGTH_LONG).show();
     }
 
-    public void SendSms(final String to, final String message) {
+   /* public void SendSms(final String to, final String message) {
 
         StringRequest menuRequest = new StringRequest(Request.Method.POST,"http://example.com/androidsms/sms.php",
                 new Response.Listener<String>() {
@@ -305,5 +404,5 @@ public class OTPVerificationActivity extends BaseActivity implements View.OnClic
             }
         };
         requestQueue.add(menuRequest);
-    }
+    }*/
 }

@@ -5,10 +5,12 @@ import android.app.Activity;
 import android.app.Dialog;
 import android.content.ActivityNotFoundException;
 import android.content.ContentResolver;
+import android.content.ContentUris;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.Resources;
 import android.database.Cursor;
 
 import androidx.annotation.NonNull;
@@ -32,13 +34,26 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.os.ResultReceiver;
+import android.provider.DocumentsContract;
 import android.provider.MediaStore;
+import android.provider.OpenableColumns;
 import android.provider.Settings;
 
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.FileProvider;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.databinding.adapters.ToolbarBindingAdapter;
+import androidx.loader.content.CursorLoader;
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.RequestBody;
+import okhttp3.ResponseBody;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -58,11 +73,15 @@ import android.widget.ImageView;
 import android.widget.Toast;
 
 import com.acfapp.acf.databinding.ActivityNewComplaintBinding;
+import com.crashlytics.android.Crashlytics;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.material.snackbar.Snackbar;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.karumi.dexter.Dexter;
 import com.karumi.dexter.MultiplePermissionsReport;
 import com.karumi.dexter.PermissionToken;
@@ -71,10 +90,13 @@ import com.karumi.dexter.listener.PermissionRequest;
 import com.karumi.dexter.listener.PermissionRequestErrorListener;
 import com.karumi.dexter.listener.multi.MultiplePermissionsListener;
 
+import org.json.JSONObject;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -101,6 +123,7 @@ public class NewComplaintActivity extends BaseActivity implements LocationListen
     AppLocationService appLocationService;
 
     String strTitle,strComplaintType,strIssue;
+    private APIRetrofitClient apiRetrofitClient;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -209,6 +232,7 @@ public class NewComplaintActivity extends BaseActivity implements LocationListen
 
 
     private void init() {
+        apiRetrofitClient  = new APIRetrofitClient();
         lstModelData = new ArrayList<>();
         appLocationService = new AppLocationService(NewComplaintActivity.this);
 
@@ -822,7 +846,7 @@ public class NewComplaintActivity extends BaseActivity implements LocationListen
 
     public void SubmitDialog()
     {
-        if (!strIssue.equalsIgnoreCase("") && !strTitle.equalsIgnoreCase("") && !strComplaintType.equalsIgnoreCase("")) {
+        //if (!strIssue.equalsIgnoreCase("") && !strTitle.equalsIgnoreCase("") && !strComplaintType.equalsIgnoreCase("")) {
             AlertDialog.Builder builder = new AlertDialog.Builder(this);
             //builder.setTitle("Upload");
             //Setting message manually and performing action on button click
@@ -832,9 +856,15 @@ public class NewComplaintActivity extends BaseActivity implements LocationListen
                         public void onClick(DialogInterface dialog, int id) {
                             //finish();
                             dialog.cancel();
-                       /* Toast.makeText(getApplicationContext(),"Under development",
-                                Toast.LENGTH_SHORT).show();*/
-                            finish();
+                            if(!lstModelData.isEmpty())
+                            {
+                                for(NewComplaintModel newComplaintModel : lstModelData)
+                                {
+                                    System.out.println("FilePath::"+newComplaintModel.getFilePath());
+                                    uploadImage(getRealPathFromURI(newComplaintModel.getUri()));
+
+                                }
+                            }
                         }
                     })
                     .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -848,8 +878,107 @@ public class NewComplaintActivity extends BaseActivity implements LocationListen
             //Setting the title manually
             alert.setTitle("Upload Alert");
             alert.show();
-        }else {
+        /*}else {
             Toast.makeText(NewComplaintActivity.this, "Please fill all the fields", Toast.LENGTH_LONG).show();
+        }*/
+    }
+
+
+    private String getRealPathFromURI(Uri uri) {
+        Uri returnUri = uri;
+        Cursor returnCursor = getContentResolver().query(returnUri, null, null, null, null);
+        /*
+         * Get the column indexes of the data in the Cursor,
+         *     * move to the first row in the Cursor, get the data,
+         *     * and display it.
+         * */
+        int nameIndex = returnCursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+        int sizeIndex = returnCursor.getColumnIndex(OpenableColumns.SIZE);
+        returnCursor.moveToFirst();
+        String name = (returnCursor.getString(nameIndex));
+        String size = (Long.toString(returnCursor.getLong(sizeIndex)));
+        File file = new File(getFilesDir(), name);
+        try {
+            InputStream inputStream = getContentResolver().openInputStream(uri);
+            FileOutputStream outputStream = new FileOutputStream(file);
+            int read = 0;
+            int maxBufferSize = 1 * 1024 * 1024;
+            int bytesAvailable = inputStream.available();
+
+            //int bufferSize = 1024;
+            int bufferSize = Math.min(bytesAvailable, maxBufferSize);
+
+            final byte[] buffers = new byte[bufferSize];
+            while ((read = inputStream.read(buffers)) != -1) {
+                outputStream.write(buffers, 0, read);
+            }
+            Log.e("File Size", "Size " + file.length());
+            inputStream.close();
+            outputStream.close();
+            Log.e("File Path", "Path " + file.getPath());
+            Log.e("File Size", "Size " + file.length());
+        } catch (Exception e) {
+            Log.e("Exception", e.getMessage());
+        }
+        return file.getPath();
+    }
+
+    private void uploadImage(String imagePath)
+    {
+
+        try {
+            Retrofit retrofit = apiRetrofitClient.getRetrofit(APIInterface.BASE_URL);
+            APIInterface api = retrofit.create(APIInterface.class);
+
+            RequestBody requestFile = RequestBody.create((MediaType.parse("image/*")), imagePath);
+
+            MultipartBody.Part body = MultipartBody.Part.createFormData("file", imagePath, requestFile);
+            Call<JsonObject> call = api.uploadImage(body);
+            call.enqueue(new Callback<JsonObject>() {
+                @Override
+                public void onResponse(Call<JsonObject> call, retrofit2.Response<JsonObject> response) {
+                    try {
+                        if(response.body() != null) {
+                            Log.e(" responce => ", response.body().toString());
+                            if (response.isSuccessful()) {
+                                //hideProgressDialog(NewComplaintActivity.this);
+                                Gson gson = new Gson();
+                                String successResponse = gson.toJson(response.body());
+                                Toast.makeText(NewComplaintActivity.this, "RESPONSE :: "+ successResponse, Toast.LENGTH_SHORT).show();
+                                JSONObject jsonObj = new JSONObject(response.body().toString());
+                            } else {
+                                Toast.makeText(NewComplaintActivity.this, "RESPONSE :: "+ response.body().toString(), Toast.LENGTH_SHORT).show();
+                                //hideProgressDialog(NewComplaintActivity.this);
+                            }
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        try {
+                            Log.e("Tag", "error=" + e.toString());
+                            Toast.makeText(NewComplaintActivity.this, "ERROR :: "+ e.toString(), Toast.LENGTH_SHORT).show();
+                           // hideProgressDialog(NewComplaintActivity.this);
+                        } catch (Resources.NotFoundException e1) {
+                            e1.printStackTrace();
+                        }
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<JsonObject> call, Throwable t) {
+                    try {
+                        Log.e("Tag", "error" + t.toString());
+                        Toast.makeText(NewComplaintActivity.this, "ERROR :: "+ t.toString(), Toast.LENGTH_SHORT).show();
+                        hideProgressDialog(NewComplaintActivity.this);
+                    } catch (Resources.NotFoundException e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+        }catch (Exception e)
+        {
+            e.printStackTrace();
         }
     }
+
+
 }

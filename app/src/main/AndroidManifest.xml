@@ -35,7 +35,8 @@
             android:theme="@style/AppTheme.NoActionBar" />
         <activity android:name=".ForgotPasswordActivity" />
         <activity android:name=".ServiceProvider.Petitions.PetitionActivity" />
-        <activity android:name=".NewComplaintActivity" />
+        <activity android:name=".NewComplaintActivity" >
+        </activity>
         <activity
             android:name=".LoginScreenActivity"
             android:theme="@style/AppTheme.NoActionBar" />
@@ -48,10 +49,10 @@
         </activity>
         <activity android:name=".OTPVerificationActivity" >
             <intent-filter>
-            <action android:name="android.intent.action.MAIN" />
+                <action android:name="android.intent.action.MAIN" />
 
-            <category android:name="android.intent.category.LAUNCHER" />
-        </intent-filter>
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
         </activity>
         <activity
             android:name=".ViewMediaActivity"
