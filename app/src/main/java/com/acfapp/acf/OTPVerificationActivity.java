@@ -78,6 +78,8 @@ public class OTPVerificationActivity extends BaseActivity implements View.OnClic
     APIRetrofitClient apiRetrofitClient;
     private RequestQueue requestQueue;
     JsonObject gsonObject;
+    private static final int CREDENTIAL_PICKER_REQUEST = 1;  // Set to an unused request code
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -175,8 +177,9 @@ public class OTPVerificationActivity extends BaseActivity implements View.OnClic
         switch (view.getId())
         {
             case R.id.btnContinue:
-                postAddMemberDetails("Rama K Eddy", "7678765897", "ghfhf@gmail.com", "M", "rama.jpg");
+                //postAddMemberDetails("Rama K Eddy", "7678765897", "ghfhf@gmail.com", "M", "rama.jpg");
                 //postImageUpload();
+                getOTPFromSMSGateway();
                 break;
             case R.id.change_mobile_no:
                 binding.llVerifyingOtp.setVisibility(View.GONE);
@@ -198,88 +201,10 @@ public class OTPVerificationActivity extends BaseActivity implements View.OnClic
         }
     }
 
-    private void postImageUpload()
+    private void getOTPFromSMSGateway()
     {
-        try {
-            String body = "{\n" +
-                    "\"fullname\":\"Rama K Eddy\",\n" +
-                    "\"mobile\": \"7678765897\",\n" +
-                    "\"email\":\"ghfhf@gmail.com\",\n" +
-                    "\"gender\":\"M\",\n" +
-                    "\"photo\":\"rama.jpg\"\n" +
-                    "}";
-
-            new SendDeviceDetails().execute("http://api.ainext.in/members/addmember", body.toString());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 
-
-    private class SendDeviceDetails extends AsyncTask<String, Void, String> {
-
-        @Override
-        protected String doInBackground(String... params) {
-            
-            HttpURLConnection httpcon = null;
-            String url = "http://api.ainext.in/members/addmember";
-            String data = "{\n" +
-                    "\"fullname\":\"Rama K Eddy\",\n" +
-                    "\"mobile\": \"7678765897\",\n" +
-                    "\"email\":\"ghfhf@gmail.com\",\n" +
-                    "\"gender\":\"M\",\n" +
-                    "\"photo\":\"rama.jpg\"\n" +
-                    "}";
-            String result = null;
-            try {
-                //Connect
-                httpcon = (HttpURLConnection) ((new URL (url).openConnection()));
-                httpcon.setDoOutput(true);
-                httpcon.setRequestProperty("Content-Type", "application/json");
-                httpcon.setRequestProperty("Accept", "application/json");
-                httpcon.setRequestMethod("POST");
-                httpcon.connect();
-
-                //Write       
-                OutputStream os = httpcon.getOutputStream();
-                BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os, "UTF-8"));
-                writer.write(data);
-                writer.close();
-                os.close();
-
-                //Read        
-                BufferedReader br = new BufferedReader(new InputStreamReader(httpcon.getInputStream(),"UTF-8"));
-
-                String line = null;
-                StringBuilder sb = new StringBuilder();
-
-                while ((line = br.readLine()) != null) {
-                    sb.append(line);
-                }
-
-                br.close();
-                result = sb.toString();
-
-            } catch (UnsupportedEncodingException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            } finally {
-
-                if (httpcon != null) {
-                    httpcon.disconnect();
-                }
-            }
-
-            return result;
-        }
-
-        @Override
-        protected void onPostExecute(String result) {
-            super.onPostExecute(result);
-            Log.e("TAG", result); // this is expecting a response code to be sent from your server upon receiving the POST data
-        }
-    }
 
     private void postAddMemberDetails(String fullname, String mobile, String email, String gender, String photo) {
 
