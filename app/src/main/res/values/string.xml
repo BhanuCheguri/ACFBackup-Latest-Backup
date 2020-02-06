@@ -59,7 +59,7 @@
     <string name="login_here">Login here</string>
     <string name="txt_continue">Continue</string>
     <string name="verify_mobile_text">Please enter your Mobile Number to receive a verifaction code</string>
-    <string name="verify_otp">We have sent OTP to your </string>
+    <string name="verify_otp">Wait we are trying to retrieve your OTP. </string>
     <string name="enter_otp">Please enter below </string>
     <string name="otp">OTP Code</string>
     <string name="or">OR</string>

@@ -49,4 +49,8 @@ public interface APIInterface {
     @Multipart
     @POST("posts/upload")
     Call<JsonObject> uploadImage(@Part MultipartBody.Part image);
+
+
+    @GET("members/sendsms?")
+    Call<ResponseBody> getSMSOTP(@Query("mobile") String mobile);
 }

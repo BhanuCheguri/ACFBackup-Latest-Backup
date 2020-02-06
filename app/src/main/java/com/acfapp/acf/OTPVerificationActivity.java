@@ -2,27 +2,39 @@ package com.acfapp.acf;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.app.ActivityCompat;
 import androidx.databinding.DataBindingUtil;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+
+import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.PendingIntent;
 import android.app.ProgressDialog;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.IntentSender;
 import android.content.res.Resources;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 
+import android.provider.Telephony;
+import android.telephony.SmsMessage;
 import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.widget.Toast;
 
+import com.acfapp.acf.Receiver.MySMSBroadcastReceiver;
 import com.acfapp.acf.SMSVerification.OtpReceivedInterface;
 import com.acfapp.acf.SMSVerification.SmsBroadcastReceiver;
 import com.acfapp.acf.databinding.ActivityOtpverificationBinding;
@@ -66,6 +78,7 @@ import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 public class OTPVerificationActivity extends BaseActivity implements View.OnClickListener , GoogleApiClient.ConnectionCallbacks,
         OtpReceivedInterface, GoogleApiClient.OnConnectionFailedListener{
@@ -79,6 +92,7 @@ public class OTPVerificationActivity extends BaseActivity implements View.OnClic
     private RequestQueue requestQueue;
     JsonObject gsonObject;
     private static final int CREDENTIAL_PICKER_REQUEST = 1;  // Set to an unused request code
+    private int MY_PERMISSIONS_REQUEST_SMS_RECEIVE = 10;
 
 
     @Override
@@ -95,6 +109,10 @@ public class OTPVerificationActivity extends BaseActivity implements View.OnClic
         binding.btnContinue.setOnClickListener(this);
         binding.btnSubmit.setOnClickListener(this);
         binding.changeMobileNo.setOnClickListener(this);
+
+
+        ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.RECEIVE_SMS},
+                MY_PERMISSIONS_REQUEST_SMS_RECEIVE);
     }
 
     @Override public void onConnected(@Nullable Bundle bundle) {
@@ -118,31 +136,6 @@ public class OTPVerificationActivity extends BaseActivity implements View.OnClic
 
     }
 
-    public void startSMSListener() {
-        SmsRetrieverClient mClient = SmsRetriever.getClient(this);
-        Task<Void> mTask = mClient.startSmsRetriever();
-        mTask.addOnSuccessListener(new OnSuccessListener<Void>() {
-            @Override public void onSuccess(Void aVoid) {
-                String strMobileNo = binding.etMobileNo.getText().toString();
-                if (!strMobileNo.equalsIgnoreCase("") && strMobileNo != null)
-                {
-                    binding.verifyOtp.setText(getString(R.string.verify_otp) + "\t" + strMobileNo);
-                    binding.llVerifyingOtp.setVisibility(View.VISIBLE);
-                    binding.llVerifyMobileNo.setVisibility(View.GONE);
-                    Toast.makeText(OTPVerificationActivity.this, "SMS Retriever starts", Toast.LENGTH_LONG).show();
-                }
-                else
-                    showErrorAlert(OTPVerificationActivity.this,getString(R.string.alert_verify_mobile_no));
-                //Toast.makeText(OTPVerificationActivity.this,"Please enter Mobile Number to verify",Toast.LENGTH_LONG).show();
-
-            }
-        });
-        mTask.addOnFailureListener(new OnFailureListener() {
-            @Override public void onFailure(@NonNull Exception e) {
-                Toast.makeText(OTPVerificationActivity.this, "Error", Toast.LENGTH_LONG).show();
-            }
-        });
-    }
 
     public void getHintPhoneNumber() {
         HintRequest hintRequest =
@@ -156,6 +149,16 @@ public class OTPVerificationActivity extends BaseActivity implements View.OnClic
             e.printStackTrace();
         }
     }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[]
+            permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == MY_PERMISSIONS_REQUEST_SMS_RECEIVE) {
+            Log.d("TAG", "My permission request sms received successfully");
+        }
+    }
+
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
@@ -179,7 +182,7 @@ public class OTPVerificationActivity extends BaseActivity implements View.OnClic
             case R.id.btnContinue:
                 //postAddMemberDetails("Rama K Eddy", "7678765897", "ghfhf@gmail.com", "M", "rama.jpg");
                 //postImageUpload();
-                getOTPFromSMSGateway();
+                getOTP();
                 break;
             case R.id.change_mobile_no:
                 binding.llVerifyingOtp.setVisibility(View.GONE);
@@ -201,10 +204,58 @@ public class OTPVerificationActivity extends BaseActivity implements View.OnClic
         }
     }
 
-    private void getOTPFromSMSGateway()
-    {
+    public static boolean isValidMobile(String phone) {
+        boolean check = false;
+        if (!Pattern.matches("[a-zA-Z]+", phone)) {
+            if (phone.length() < 9 ) {
+                // if(phone.length() != 10) {
+                check = false;
+                // txtPhone.setError("Not Valid Number");
+            } else {
+                check = android.util.Patterns.PHONE.matcher(phone).matches();
+            }
+        } else {
+            check = false;
+        }
+        return check;
     }
 
+
+
+
+    private void getOTP() {
+        try{
+        Retrofit retrofit = apiRetrofitClient.getRetrofit(APIInterface.BASE_URL);
+        APIInterface api = retrofit.create(APIInterface.class);
+        if(!binding.etMobileNo.getText().toString().equalsIgnoreCase("")) {
+            if (!isValidMobile(binding.etMobileNo.getText().toString().trim())) {
+                Toast.makeText(getApplicationContext(), "Please enter the valid Mobile Number to get OTP", Toast.LENGTH_SHORT).show();
+            } else {
+                Call<ResponseBody> call = api.getSMSOTP(binding.etMobileNo.getText().toString());
+
+                call.enqueue(new Callback<ResponseBody>() {
+                    @Override
+                    public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                        ResponseBody myProfileData = response.body();
+                        binding.llVerifyMobileNo.setVisibility(View.GONE);
+                        binding.llVerifyingOtp.setVisibility(View.VISIBLE);
+                    }
+
+                    @Override
+                    public void onFailure(Call<ResponseBody> call, Throwable t) {
+                        Toast.makeText(getApplicationContext(), t.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+        }
+        else{
+            Toast.makeText(getApplicationContext(), "Mobile Number shouldn't be empty", Toast.LENGTH_SHORT).show();
+        }
+        }catch (Exception e)
+        {
+            Crashlytics.logException(e);
+        }
+    }
 
     private void postAddMemberDetails(String fullname, String mobile, String email, String gender, String photo) {
 
@@ -279,11 +330,33 @@ public class OTPVerificationActivity extends BaseActivity implements View.OnClic
         }
     }
 
-
+    @Override
+    public void onResume() {
+        LocalBroadcastManager.getInstance(this).registerReceiver(receiver, new IntentFilter("otp"));
+        super.onResume();
+    }
+    @Override
+    public void onPause() {
+        super.onPause();
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(receiver);
+    }
+    private BroadcastReceiver receiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent.getAction().equalsIgnoreCase("otp")) {
+                final String message = intent.getStringExtra("number");
+                Toast.makeText(OTPVerificationActivity.this, "OTP is :" + message, Toast.LENGTH_SHORT).show();
+                // message is the fetching OTP
+                if(message != null && !message.equalsIgnoreCase(""))
+                    binding.otpCode.setText(message);
+            }
+        }
+    };
 
     public void Snack(String message){
         Toast.makeText(OTPVerificationActivity.this, message, Toast.LENGTH_LONG).show();
     }
+
 
    /* public void SendSms(final String to, final String message) {
 
