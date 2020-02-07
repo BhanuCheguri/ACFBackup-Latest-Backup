@@ -31,6 +31,7 @@ public interface APIInterface {
     //String GET_POSTS =  http://api.ainext.in/posts/getposts?categoryID=1&days=-1
     //String GET_MEMBERS =  BASE_URL + "members/getmembers?mobile=9032200318/";
     //String ADD_MEMBERS =  BASE_URL + "members/addmember";
+    //http://api.ainext.in/members/validateotp?mobile=9032200318&otp=74340
 
     @GET("members/getmembers?")
     Call<List<MyProfileModel>> getProfileDetails(@Query("mobile") String mobile);
@@ -53,4 +54,7 @@ public interface APIInterface {
 
     @GET("members/sendsms?")
     Call<ResponseBody> getSMSOTP(@Query("mobile") String mobile);
+
+    @GET("members/validateotp?")
+    Call<ResponseBody> getValidateOTPStatus(@Query("mobile") String mobile,@Query("otp") String otp);
 }

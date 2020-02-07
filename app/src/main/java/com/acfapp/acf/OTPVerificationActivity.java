@@ -182,7 +182,9 @@ public class OTPVerificationActivity extends BaseActivity implements View.OnClic
             case R.id.btnContinue:
                 //postAddMemberDetails("Rama K Eddy", "7678765897", "ghfhf@gmail.com", "M", "rama.jpg");
                 //postImageUpload();
-                getOTP();
+                //GetOTP();
+                GetOTPAsyncTask getOTPtask = new GetOTPAsyncTask();
+                getOTPtask.execute(binding.etMobileNo.getText().toString());
                 break;
             case R.id.change_mobile_no:
                 binding.llVerifyingOtp.setVisibility(View.GONE);
@@ -223,38 +225,63 @@ public class OTPVerificationActivity extends BaseActivity implements View.OnClic
 
 
 
-    private void getOTP() {
-        try{
-        Retrofit retrofit = apiRetrofitClient.getRetrofit(APIInterface.BASE_URL);
-        APIInterface api = retrofit.create(APIInterface.class);
-        if(!binding.etMobileNo.getText().toString().equalsIgnoreCase("")) {
-            if (!isValidMobile(binding.etMobileNo.getText().toString().trim())) {
-                Toast.makeText(getApplicationContext(), "Please enter the valid Mobile Number to get OTP", Toast.LENGTH_SHORT).show();
-            } else {
-                Call<ResponseBody> call = api.getSMSOTP(binding.etMobileNo.getText().toString());
+    public class GetOTPAsyncTask extends AsyncTask<String, String, String> {
 
-                call.enqueue(new Callback<ResponseBody>() {
-                    @Override
-                    public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-                        ResponseBody myProfileData = response.body();
-                        binding.llVerifyMobileNo.setVisibility(View.GONE);
-                        binding.llVerifyingOtp.setVisibility(View.VISIBLE);
-                    }
+        private String resp;
+        CustomProgressDialog progressDialog;
 
-                    @Override
-                    public void onFailure(Call<ResponseBody> call, Throwable t) {
-                        Toast.makeText(getApplicationContext(), t.getMessage(), Toast.LENGTH_SHORT).show();
+        @Override
+        protected void onPreExecute() {
+            progressDialog = new CustomProgressDialog(OTPVerificationActivity.this);
+            progressDialog.setTitle("Please wait...Receiving SMS");
+            progressDialog.show();
+        }
+
+        @Override
+        protected String doInBackground(String... params) {
+            try{
+                Retrofit retrofit = apiRetrofitClient.getRetrofit(APIInterface.BASE_URL);
+                APIInterface api = retrofit.create(APIInterface.class);
+                if(!params[0].equalsIgnoreCase("")) {
+                    if (!isValidMobile(params[0].trim())) {
+                        Toast.makeText(getApplicationContext(), "Please enter the valid Mobile Number to get OTP", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Call<ResponseBody> call = api.getSMSOTP(params[0].toString());
+
+                        call.enqueue(new Callback<ResponseBody>() {
+                            @Override
+                            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                                ResponseBody myProfileData = response.body();
+                                binding.llVerifyMobileNo.setVisibility(View.GONE);
+                                binding.llVerifyingOtp.setVisibility(View.VISIBLE);
+                            }
+
+                            @Override
+                            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                                Toast.makeText(getApplicationContext(), t.getMessage(), Toast.LENGTH_SHORT).show();
+                            }
+                        });
                     }
-                });
+                }
+                else{
+                    Toast.makeText(getApplicationContext(), "Mobile Number shouldn't be empty", Toast.LENGTH_SHORT).show();
+                }
+            }catch (Exception e)
+            {
+                Crashlytics.logException(e);
+            }
+            return resp;
+        }
+
+
+        @Override
+        protected void onPostExecute(String result) {
+            // execution of result of Long time consuming operation
+            if (progressDialog.isShowing()){
+                progressDialog.dismiss();
             }
         }
-        else{
-            Toast.makeText(getApplicationContext(), "Mobile Number shouldn't be empty", Toast.LENGTH_SHORT).show();
-        }
-        }catch (Exception e)
-        {
-            Crashlytics.logException(e);
-        }
+
     }
 
     private void postAddMemberDetails(String fullname, String mobile, String email, String gender, String photo) {
@@ -349,13 +376,64 @@ public class OTPVerificationActivity extends BaseActivity implements View.OnClic
                 // message is the fetching OTP
                 if(message != null && !message.equalsIgnoreCase(""))
                     binding.otpCode.setText(message);
+
+
+                GetOTPVerifiedAsyncTask getOTPVerifiedAsyncTask = new GetOTPVerifiedAsyncTask();
+                getOTPVerifiedAsyncTask.execute(binding.etMobileNo.getText().toString(),message);
             }
         }
     };
 
-    public void Snack(String message){
-        Toast.makeText(OTPVerificationActivity.this, message, Toast.LENGTH_LONG).show();
+    public class GetOTPVerifiedAsyncTask extends AsyncTask<String, String, String> {
+
+        private String resp;
+        CustomProgressDialog progressDialog;
+
+        @Override
+        protected void onPreExecute() {
+            progressDialog = new CustomProgressDialog(OTPVerificationActivity.this);
+            progressDialog.setTitle("Please wait...Verifying your OTP");
+            progressDialog.show();
+        }
+
+        @Override
+        protected String doInBackground(String... params) {
+            try{
+                Retrofit retrofit = apiRetrofitClient.getRetrofit(APIInterface.BASE_URL);
+                APIInterface api = retrofit.create(APIInterface.class);
+
+                Call<ResponseBody> call = api.getValidateOTPStatus(params[0].toString(),params[1].toString());
+
+                call.enqueue(new Callback<ResponseBody>() {
+                    @Override
+                    public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                        ResponseBody myOTPStatus = response.body();
+                        Log.v("Data",myOTPStatus.toString());
+                    }
+
+                    @Override
+                    public void onFailure(Call<ResponseBody> call, Throwable t) {
+                        Toast.makeText(getApplicationContext(), t.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }catch (Exception e)
+            {
+                Crashlytics.logException(e);
+            }
+            return resp;
+        }
+
+
+        @Override
+        protected void onPostExecute(String result) {
+            // execution of result of Long time consuming operation
+            if (progressDialog.isShowing()){
+                progressDialog.dismiss();
+            }
+        }
+
     }
+
 
 
    /* public void SendSms(final String to, final String message) {

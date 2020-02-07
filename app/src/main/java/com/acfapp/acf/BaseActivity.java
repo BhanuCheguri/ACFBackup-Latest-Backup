@@ -12,6 +12,7 @@ import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -30,6 +31,11 @@ public class BaseActivity extends AppCompatActivity {
         pref = getApplicationContext().getSharedPreferences("MyPref", 0); // 0 - for private mode
     }
 
+
+    public void showToast(String strMessage)
+    {
+        Toast.makeText(OTPVerificationActivity.this, strMessage, Toast.LENGTH_LONG).show();
+    }
 
     public void setActionBarTitle(String strTitle)
     {
