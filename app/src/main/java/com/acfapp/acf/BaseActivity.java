@@ -34,7 +34,7 @@ public class BaseActivity extends AppCompatActivity {
 
     public void showToast(String strMessage)
     {
-        Toast.makeText(OTPVerificationActivity.this, strMessage, Toast.LENGTH_LONG).show();
+        //Toast.makeText(OTPVerificationActivity.this, strMessage, Toast.LENGTH_LONG).show();
     }
 
     public void setActionBarTitle(String strTitle)
