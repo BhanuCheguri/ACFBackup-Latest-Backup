@@ -57,4 +57,7 @@ public interface APIInterface {
 
     @GET("members/validateotp?")
     Call<ResponseBody> getValidateOTPStatus(@Query("mobile") String mobile,@Query("otp") String otp);
+
+    @GET("posts/getcategories?")
+    Call<List<DashboardCategories>> getDashboardCategories();
 }

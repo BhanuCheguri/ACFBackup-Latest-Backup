@@ -1,6 +1,8 @@
 package com.acfapp.acf;
 
 import android.os.Bundle;
+import android.widget.Toast;
+
 import androidx.core.content.ContextCompat;
 
 import java.util.ArrayList;
@@ -8,8 +10,15 @@ import java.util.List;
 
 import me.riddhimanadib.library.BottomBarHolderActivity;
 import me.riddhimanadib.library.NavigationPage;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+
+import static com.facebook.FacebookSdk.getApplicationContext;
 
 public class MainActivity extends BottomBarHolderActivity implements HomeFragment.OnFragmentInteractionListener {
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -18,7 +27,7 @@ public class MainActivity extends BottomBarHolderActivity implements HomeFragmen
         NavigationPage page1 = new NavigationPage("Home", ContextCompat.getDrawable(this, R.drawable.ic_home_black_24dp), HomeFragment.newInstance());
         NavigationPage page2 = new NavigationPage("Corruption", ContextCompat.getDrawable(this, R.drawable.ic_corruption), CorruptionFragment.newInstance());
         //NavigationPage page3 = new NavigationPage("Adulteration", ContextCompat.getDrawable(this, R.drawable.ic_adulteration), AdulterationFragment.newInstance());
-        NavigationPage page4 = new NavigationPage("Find N Fix", ContextCompat.getDrawable(this, R.drawable.ic_findnfix), FindnFixFragment.newInstance());
+        NavigationPage page4 = new NavigationPage("Find n Fix", ContextCompat.getDrawable(this, R.drawable.ic_findnfix), FindnFixFragment.newInstance());
         NavigationPage page5 = new NavigationPage("Social Evil", ContextCompat.getDrawable(this, R.drawable.ic_social_evil), SocialEvilFragment.newInstance());
         NavigationPage page6 = new NavigationPage("More", ContextCompat.getDrawable(this, R.drawable.ic_more), GridFragment.newInstance());
 
@@ -32,5 +41,4 @@ public class MainActivity extends BottomBarHolderActivity implements HomeFragmen
 
         super.setupBottomBarHolderActivity(navigationPages);
     }
-
 }

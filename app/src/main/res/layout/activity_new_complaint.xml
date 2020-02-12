@@ -102,10 +102,10 @@
 
                     <TextView
                         android:id="@+id/current_location"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="match_parent"
-                        android:layout_weight="0.7"
-                        android:drawablePadding="5dp"
+                        android:layout_weight="0.3"
+                        android:drawablePadding="10dp"
                         android:drawableStart="@drawable/map_placeholder"
                         android:fontFamily="@font/montserrat_light"
                         android:gravity="center|bottom|left"
@@ -114,10 +114,10 @@
 
                     <TextView
                         android:id="@+id/current_date"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="match_parent"
-                        android:layout_weight="0.3"
-                        android:drawablePadding="5dp"
+                        android:layout_weight="0.7"
+                        android:drawablePadding="10dp"
                         android:drawableStart="@drawable/ic_clock_16_orange"
                         android:gravity="center|left"
                         android:textColor="@android:color/black"

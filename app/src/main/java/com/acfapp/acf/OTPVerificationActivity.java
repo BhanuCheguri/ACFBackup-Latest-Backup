@@ -199,9 +199,7 @@ public class OTPVerificationActivity extends BaseActivity implements View.OnClic
 
                     postAddMemberDetails("Rama K Eddy","7678765897","ghfhf@gmail.com","M","rama.jpg");
                     //postImageUpload();
-                    /*Intent intent = new Intent(OTPVerificationActivity.this, MainActivity.class);
-                    startActivity(intent);
-                    finish();*/
+                    /**/
                 }
         }
     }
@@ -327,6 +325,11 @@ public class OTPVerificationActivity extends BaseActivity implements View.OnClic
                                 }
                             }else
                                 Toast.makeText(OTPVerificationActivity.this, "RESPONSE :: "+response.body(), Toast.LENGTH_SHORT).show();
+
+                            Intent intent = new Intent(OTPVerificationActivity.this, MainActivity.class);
+                            startActivity(intent);
+                            finish();
+
                         } catch (Exception e) {
                             e.printStackTrace();
                             try {
@@ -376,7 +379,6 @@ public class OTPVerificationActivity extends BaseActivity implements View.OnClic
                 // message is the fetching OTP
                 if(message != null && !message.equalsIgnoreCase(""))
                     binding.otpCode.setText(message);
-
 
                 GetOTPVerifiedAsyncTask getOTPVerifiedAsyncTask = new GetOTPVerifiedAsyncTask();
                 getOTPVerifiedAsyncTask.execute(binding.etMobileNo.getText().toString(),message);
@@ -433,52 +435,4 @@ public class OTPVerificationActivity extends BaseActivity implements View.OnClic
         }
 
     }
-
-
-
-   /* public void SendSms(final String to, final String message) {
-
-        StringRequest menuRequest = new StringRequest(Request.Method.POST,"http://example.com/androidsms/sms.php",
-                new Response.Listener<String>() {
-                    @Override
-                    public void onResponse(String response) {
-                        JSONArray jsonResponse = null;
-                        try {
-                            jsonResponse = new JSONObject(response).getJSONArray("check");
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
-
-                        int i = jsonResponse.length();
-                        for(int j=0;j<i;j++){
-                            JSONObject jsonChildNode = null;
-                            try {
-                                jsonChildNode = jsonResponse.getJSONObject(j);
-                            } catch (JSONException e) {
-                                e.printStackTrace();
-                            }
-                            Snack(jsonChildNode.optString("sms").toString());
-
-                        }
-
-                    }
-                },
-                new Response.ErrorListener() {
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-                        error.printStackTrace();
-                        Snack("Volley " + error.getMessage());
-                    }
-                }
-        ) {
-            @Override
-            protected Map<String, String> getParams() {
-                Map<String, String> params = new HashMap<>();
-                params.put("to",to);
-                params.put("message",message);
-                return params;
-            }
-        };
-        requestQueue.add(menuRequest);
-    }*/
 }

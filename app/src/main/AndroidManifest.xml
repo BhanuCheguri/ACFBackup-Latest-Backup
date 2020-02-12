@@ -29,19 +29,31 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true">
-        <activity android:name=".ChangePasswordActivity"></activity>
+
+        <activity android:name=".ChangePasswordActivity"/>
+
         <activity android:name=".ProfileActivity" /> <!-- <activity android:name=".SearchResultsActivity"></activity> -->
+
         <activity
             android:name=".SplashActivity"
             android:theme="@style/AppTheme.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
         </activity>
+
         <activity
             android:name=".NewLoginActivity"
             android:theme="@style/AppTheme.NoActionBar" />
+
         <activity android:name=".ForgotPasswordActivity" />
+
         <activity android:name=".ServiceProvider.Petitions.PetitionActivity" />
-        <activity android:name=".NewComplaintActivity" >
-        </activity>
+
+        <activity android:name=".NewComplaintActivity" />
+
         <activity
             android:name=".LoginScreenActivity"
             android:theme="@style/AppTheme.NoActionBar" />
@@ -50,22 +62,20 @@
             <meta-data
                 android:name="android.app.searchable"
                 android:resource="@xml/searchable" />
-
         </activity>
+
         <activity android:name=".OTPVerificationActivity" >
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
         </activity>
+
         <activity
             android:name=".ViewMediaActivity"
             android:theme="@style/AppTheme.NoActionBar" />
+
         <activity
             android:name="com.facebook.FacebookActivity"
             android:configChanges="keyboard|keyboardHidden|screenLayout|screenSize|orientation"
             android:label="@string/app_name" />
+
         <activity
             android:name="com.facebook.CustomTabActivity"
             android:exported="true">
@@ -93,7 +103,6 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
-
         <receiver
             android:name=".Receiver.MySMSBroadcastReceiver"
             android:exported="true"
@@ -103,8 +112,6 @@
                 <action android:name="android.provider.Telephony.SMS_RECEIVED" />
             </intent-filter>
         </receiver>
-
-
 
     </application>
 

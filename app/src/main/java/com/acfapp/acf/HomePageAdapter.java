@@ -57,8 +57,6 @@ public class HomePageAdapter  extends ArrayAdapter<WallPostsModel> {
         holder.txtDescription = (TextView) rowView.findViewById(R.id.tv_description);
         holder.txtDateTime = (TextView) rowView.findViewById(R.id.tv_DateTime);
 
-
-
         holder.txtTitle.setText(dataModel.getTitle());
         holder.txtLocation.setText(dataModel.getLocation());
         holder.txtDateTime.setText(getPostedDate(dataModel.getPostedDate()));

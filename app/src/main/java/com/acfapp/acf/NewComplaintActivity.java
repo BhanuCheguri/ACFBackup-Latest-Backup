@@ -45,6 +45,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.databinding.adapters.ToolbarBindingAdapter;
 import androidx.loader.content.CursorLoader;
+
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
@@ -79,6 +80,7 @@ import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -104,7 +106,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
-public class NewComplaintActivity extends BaseActivity implements LocationListener {
+public class NewComplaintActivity extends BaseActivity {
 
     ActivityNewComplaintBinding binding;
     String[] Names = {"Corruption", "Adulteration", "Social Evil", "Find and Fix"};
@@ -122,8 +124,12 @@ public class NewComplaintActivity extends BaseActivity implements LocationListen
     LocationManager locationManager;
     AppLocationService appLocationService;
 
-    String strTitle,strComplaintType,strIssue;
+    String strTitle, strComplaintType, strIssue;
     private APIRetrofitClient apiRetrofitClient;
+    private FusedLocationProviderClient locationProviderClient;
+    private Geocoder geocoder;
+    private double latitude,longitude;
+    private List<Address> addresses;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -138,98 +144,52 @@ public class NewComplaintActivity extends BaseActivity implements LocationListen
 
     private void getCurrentLocation() {
         try {
-            Location gpsLocation = appLocationService
-                    .getLocation(LocationManager.GPS_PROVIDER);
-            if (gpsLocation != null) {
-                double latitude = gpsLocation.getLatitude();
-                double longitude = gpsLocation.getLongitude();
-                LocationAddress locationAddress = new LocationAddress();
-                locationAddress.getAddressFromLocation(latitude, longitude,
-                        getApplicationContext(), new GeocoderHandler());
-            } else {
-                //showSettingsAlert();
-                Toast.makeText(NewComplaintActivity.this,"Please turn on your Location to get current location.",Toast.LENGTH_LONG).show();
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                    return;
+                }
             }
+
+            locationProviderClient = LocationServices.getFusedLocationProviderClient(this);
+            geocoder = new Geocoder(NewComplaintActivity.this, Locale.getDefault());
+
+
+            locationProviderClient.getLastLocation().addOnSuccessListener(NewComplaintActivity.this, new OnSuccessListener<Location>() {
+                @Override
+                public void onSuccess(Location location) {
+
+                    if (location != null) {
+                        latitude = location.getLatitude();
+                        longitude = location.getLongitude();
+                        try {
+                            addresses = geocoder.getFromLocation(latitude, longitude, 1);
+                            String addressLine1 = addresses.get(0).getAddressLine(0);
+                            Log.e("line1", addressLine1);
+                            String city = addresses.get(0).getLocality();
+                            Log.e("city", city);
+                            String state = addresses.get(0).getAdminArea();
+                            Log.e("state", state);
+                            String pinCode = addresses.get(0).getPostalCode();
+                            Log.e("pinCode", pinCode);
+
+                            String fullAddress = addressLine1 + ",  " + city + ",  " + state + ",  " + pinCode;
+                            binding.currentLocation.setText(addressLine1);
+
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                            Log.e("MainActivity", e.getMessage());
+                        }
+
+                    }
+                }
+            });
+
         }catch (Exception e)
         {
             e.printStackTrace();
         }
     }
-
-    public void showSettingsAlert() {
-        AlertDialog.Builder alertDialog = new AlertDialog.Builder(
-                NewComplaintActivity.this);
-        alertDialog.setTitle("SETTINGS");
-        alertDialog.setMessage("Enable Location Provider! Go to settings menu?");
-        alertDialog.setPositiveButton("Settings",
-                new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int which) {
-                        Intent intent = new Intent(
-                                Settings.ACTION_LOCATION_SOURCE_SETTINGS);
-                        NewComplaintActivity.this.startActivity(intent);
-                    }
-                });
-        alertDialog.setNegativeButton("Cancel",
-                new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int which) {
-                        dialog.cancel();
-                    }
-                });
-        alertDialog.show();
-    }
-
-    private class GeocoderHandler extends Handler {
-        @Override
-        public void handleMessage(Message message) {
-            String locationAddress;
-            switch (message.what) {
-                case 1:
-                    Bundle bundle = message.getData();
-                    locationAddress = bundle.getString("address");
-                    break;
-                default:
-                    locationAddress = null;
-            }
-            binding.currentLocation.setText(locationAddress);
-        }
-    }
-
-    @Override
-    public void onLocationChanged(Location location) {
-        binding.currentLocation.setText("Current Location: " + location.getLatitude() + ", " + location.getLongitude());
-        String cityName = null;
-        Geocoder gcd = new Geocoder(getBaseContext(), Locale.getDefault());
-        List<Address> addresses;
-        try {
-            addresses = gcd.getFromLocation(location.getLatitude(),
-                    location.getLongitude(), 1);
-            if (addresses.size() > 0) {
-                System.out.println(addresses.get(0).getLocality());
-                cityName = addresses.get(0).getLocality();
-            }
-        }
-        catch (IOException e) {
-            e.printStackTrace();
-        }
-        String s = cityName;
-       // binding.currentLocation.setText(s);
-    }
-
-    @Override
-    public void onProviderDisabled(String provider) {
-        Toast.makeText(NewComplaintActivity.this, "Please Enable GPS and Internet", Toast.LENGTH_SHORT).show();
-    }
-
-    @Override
-    public void onStatusChanged(String provider, int status, Bundle extras) {
-
-    }
-
-    @Override
-    public void onProviderEnabled(String provider) {
-
-    }
-
 
     private void init() {
         apiRetrofitClient  = new APIRetrofitClient();
@@ -862,7 +822,6 @@ public class NewComplaintActivity extends BaseActivity implements LocationListen
                                 {
                                     System.out.println("FilePath::"+newComplaintModel.getFilePath());
                                     uploadImage(getRealPathFromURI(newComplaintModel.getUri()));
-
                                 }
                             }
                         }

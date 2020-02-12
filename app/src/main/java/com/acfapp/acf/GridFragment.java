@@ -16,26 +16,43 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.acfapp.acf.databinding.FragmentGridBinding;
+import com.crashlytics.android.Crashlytics;
 
 import androidx.annotation.Nullable;
 import androidx.databinding.DataBindingUtil;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+
 public class GridFragment extends BaseFragment {
 
     FragmentGridBinding dataBiding;
-    String[] web = {
+    /*String[] web = {
             "Corruption",
             "Adulteration",
             "Find N Fix",
             "Social Evil"
-    } ;
+    } ;*/
     int[] imageId = {
-            R.mipmap.ic_corruption_colored,
             R.drawable.ic_adulteration,
-            R.drawable.ic_findnfix,
+            R.mipmap.ic_women_saftey,
             R.drawable.ic_social_evil,
+            R.mipmap.ic_medical_emergency,
+            R.mipmap.ic_law_n_order,
+            R.mipmap.ic_law_n_order,
+            R.mipmap.ic_law_n_order,
+            R.mipmap.ic_law_n_order,
     };
-
+    private APIRetrofitClient apiRetrofitClient;
+    ArrayList<String> lstCategories;
+    ArrayList<String> lstExistsCategories;
+    ArrayList<DashboardCategories> lstgridCatagories;
+    ArrayList<DashboardCategories> lstDashboardCatagories;
     public static GridFragment newInstance() {
         return new GridFragment();
     }
@@ -52,16 +69,9 @@ public class GridFragment extends BaseFragment {
         dataBiding = DataBindingUtil.inflate(inflater, R.layout.fragment_grid, null, false);
         setActionBarTitle(getString(R.string.title_more));
 
-        CustomGrid adapter = new CustomGrid(getActivity(), web, imageId);
-        dataBiding.grid.setAdapter(adapter);
-        dataBiding.grid.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        apiRetrofitClient = new APIRetrofitClient();
 
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view,
-                                    int position, long id) {
-                Toast.makeText(getActivity(), "You Clicked at " +web[+ position], Toast.LENGTH_SHORT).show();
-            }
-        });
+        getDashboardCategories();
 
         return dataBiding.getRoot();
     }
@@ -80,19 +90,19 @@ public class GridFragment extends BaseFragment {
 
     public class CustomGrid extends BaseAdapter{
         private Context mContext;
-        private final String[] web;
+        private final ArrayList<String> web;
         private final int[] Imageid;
 
-        public CustomGrid(Context c,String[] web,int[] Imageid ) {
+        public CustomGrid(Context c, ArrayList<String> lstDashboardCatagories, int[] Imageid) {
             mContext = c;
             this.Imageid = Imageid;
-            this.web = web;
+            this.web = lstDashboardCatagories;
         }
 
         @Override
         public int getCount() {
             // TODO Auto-generated method stub
-            return web.length;
+            return web.size();
         }
 
         @Override
@@ -123,7 +133,7 @@ public class GridFragment extends BaseFragment {
 
                 LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(150, 200);
                 imageView.setLayoutParams(layoutParams);
-                textView.setText(web[position]);
+                textView.setText(web.get(position));
                 imageView.setImageResource(Imageid[position]);
 
             } else {
@@ -132,5 +142,64 @@ public class GridFragment extends BaseFragment {
 
             return grid;
         }
+    }
+
+    private void getDashboardCategories() {
+        try {
+            Retrofit retrofit = apiRetrofitClient.getRetrofit(APIInterface.BASE_URL);
+            APIInterface api = retrofit.create(APIInterface.class);
+            Call<List<DashboardCategories>> call = api.getDashboardCategories();
+
+            call.enqueue(new Callback<List<DashboardCategories>>() {
+                @Override
+                public void onResponse(Call<List<DashboardCategories>> call, Response<List<DashboardCategories>> response) {
+                    List<DashboardCategories> myProfileData = response.body();
+                    ArrayList<DashboardCategories> lstgridCatagories = new ArrayList<DashboardCategories>();
+                    for (Object object : myProfileData) {
+                        lstgridCatagories.add((DashboardCategories) object);
+                    }
+                    checkExistingCategories(lstgridCatagories);
+                }
+
+                @Override
+                public void onFailure(Call<List<DashboardCategories>> call, Throwable t) {
+                    Toast.makeText(getActivity(), t.getMessage(), Toast.LENGTH_SHORT).show();
+                }
+            });
+        }catch (Exception e)
+        {
+            Crashlytics.logException(e);
+        }
+    }
+
+    private void checkExistingCategories(ArrayList<DashboardCategories> lstData) {
+        lstDashboardCatagories = new ArrayList<DashboardCategories>();
+        lstExistsCategories = new ArrayList<String>();
+        lstCategories = new ArrayList<String>();
+
+        lstExistsCategories.add("Home");
+        lstExistsCategories.add("Corruption");
+        lstExistsCategories.add("Find n Fix");
+        lstExistsCategories.add("Social Evil");
+
+        lstDashboardCatagories = lstData;
+        for(int i=0; i<lstDashboardCatagories.size(); i++) {
+            lstCategories.add(lstDashboardCatagories.get(i).getName().toString().trim());
+        }
+
+        lstCategories.removeAll(lstExistsCategories);
+
+        System.out.println(lstCategories);
+
+        CustomGrid adapter = new CustomGrid(getActivity(), lstCategories, imageId);
+        dataBiding.grid.setAdapter(adapter);
+        dataBiding.grid.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view,
+                                    int position, long id) {
+                Toast.makeText(getActivity(), "You Clicked at " +lstCategories.get(position), Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 }
